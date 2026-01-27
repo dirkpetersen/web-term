@@ -1,0 +1,18 @@
+[Unit]
+Description=Web Terminal Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/git/web-term
+ExecStart=/usr/bin/node %h/git/web-term/src/server/app.js
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Environment
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
