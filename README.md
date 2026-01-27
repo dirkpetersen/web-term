@@ -2,6 +2,9 @@
 
 A modern, web-based Linux terminal application with an integrated file browser. Access your Linux system through a browser with native SSH authentication.
 
+<img width="1155" height="688" alt="image" src="https://github.com/user-attachments/assets/e97ff2e4-7176-4493-b082-b09bf2efc6c6" />
+
+
 ## Features
 
 - **Dual Terminal Panes**: Two vertically stacked terminal sessions in one view
