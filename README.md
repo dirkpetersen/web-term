@@ -7,14 +7,15 @@ A modern, web-based Linux terminal application with an integrated file browser. 
 
 ## Features
 
-- **Dual Terminal Panes**: Two vertically stacked terminal sessions in one view
+- **Three Terminal Panes**: One large pane on the left, two stacked panes on the right
+- **Persistent Sessions**: Terminal sessions survive browser refresh and disconnects (via tmux)
 - **Integrated File Browser**: Browse, upload, download, edit, and manage files
 - **Native Linux Authentication**: Uses SSH for secure, standard Linux authentication
-- **Dark Mode UI**: Polished, modern dark theme interface
+- **Dark/Light Mode**: Toggle between dark and light themes
 - **No Root Required**: Runs as a regular user with `systemd --user`
 - **Real-time Communication**: WebSocket-based terminal and file operations
-- **File Editor**: Built-in text editor with syntax detection
-- **Resizable Layout**: Adjust panel sizes to your preference
+- **File Editor**: Built-in text editor with syntax highlighting (20+ languages)
+- **Resizable Layout**: Adjust panel sizes with mouse drag or keyboard shortcuts
 
 ## Architecture
 
@@ -30,6 +31,7 @@ Web-term authenticates by establishing SSH connections to localhost, providing:
 - Node.js 16+
 - SSH server running on localhost (typically pre-installed)
 - SSH password authentication enabled (default on most systems)
+- tmux (for session persistence): `sudo apt install tmux`
 
 ## Installation
 
@@ -81,6 +83,43 @@ npm start
 ```
 
 Then open your browser to `http://localhost:3000` (or the PORT you configured).
+
+## Session Persistence
+
+Web-term uses **tmux** under the hood to provide persistent terminal sessions:
+
+- **Browser refresh**: Your terminal sessions continue running; just reconnect
+- **Network disconnect**: Sessions survive connection drops
+- **Close browser tab**: Sessions keep running in the background
+- **Logout**: Sessions are terminated (clean logout)
+
+Each user gets three named tmux sessions that persist across reconnects:
+- `webterm-{username}-main` (left terminal)
+- `webterm-{username}-top` (top-right terminal)
+- `webterm-{username}-bottom` (bottom-right terminal)
+
+**Note**: tmux must be installed on the server (`sudo apt install tmux`).
+
+## Keyboard Shortcuts
+
+Web-term supports keyboard shortcuts similar to Windows Terminal:
+
+### Pane Resizing
+| Shortcut | Action |
+|----------|--------|
+| `Shift+Alt+Left` | Make left pane narrower |
+| `Shift+Alt+Right` | Make left pane wider |
+| `Shift+Alt+Up` | Make top-right pane shorter |
+| `Shift+Alt+Down` | Make top-right pane taller |
+
+### Font Size
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl++` (or `Ctrl+=`) | Increase font size |
+| `Ctrl+-` | Decrease font size |
+| `Ctrl+0` | Reset font size |
+
+Layout preferences are saved automatically and persist across sessions.
 
 ### Systemd User Service
 
