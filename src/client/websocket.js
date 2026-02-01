@@ -6,6 +6,7 @@ class WebSocketClient {
     this.maxReconnectAttempts = 5;
     this.reconnectDelay = 1000;
     this.sessionId = null;
+    this.intentionalDisconnect = false;
   }
 
   /**
@@ -52,6 +53,7 @@ class WebSocketClient {
    * Disconnect from WebSocket server
    */
   disconnect() {
+    this.intentionalDisconnect = true;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -115,6 +117,11 @@ class WebSocketClient {
    * Attempt to reconnect with exponential backoff
    */
   attemptReconnect() {
+    // Don't reconnect if this was an intentional disconnect (logout)
+    if (this.intentionalDisconnect) {
+      return;
+    }
+
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.error('Max reconnection attempts reached');
       window.showNotification('Connection lost. Please reload the page.', 'error');

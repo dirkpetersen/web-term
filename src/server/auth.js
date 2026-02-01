@@ -1,5 +1,6 @@
 const { Client } = require('ssh2');
 const { v4: uuidv4 } = require('uuid');
+const terminal = require('./terminal');
 
 // Store active sessions in memory
 const sessions = new Map();
@@ -30,7 +31,14 @@ function authenticateUser(username, password) {
     });
 
     conn.on('error', (err) => {
-      reject(new Error('Authentication failed: ' + err.message));
+      let errorMessage = 'Authentication failed: ' + err.message;
+
+      // Provide helpful message if SSH server is not running
+      if (err.code === 'ECONNREFUSED') {
+        errorMessage = 'SSH server is not running. Start it with: sudo service ssh start';
+      }
+
+      reject(new Error(errorMessage));
     });
 
     conn.connect({
@@ -85,14 +93,32 @@ function getSession(sessionId) {
 /**
  * Destroy session and close SSH connection
  * @param {string} sessionId - Session ID
+ * @param {boolean} killTmux - Whether to kill tmux sessions (true on logout)
  */
-function destroySession(sessionId) {
+async function destroySession(sessionId, killTmux = true) {
   const session = sessions.get(sessionId);
   if (session) {
+    console.log(`destroySession called for ${session.username}, killTmux=${killTmux}`);
+    console.log(`Session has ${session.terminals.size} terminal(s)`);
+
+    // Kill tmux sessions on explicit logout
+    if (killTmux) {
+      try {
+        console.log('Killing all user tmux sessions...');
+        await terminal.killAllUserTmuxSessions(session);
+        console.log(`Killed tmux sessions for user: ${session.username}`);
+      } catch (err) {
+        console.error('Error killing tmux sessions:', err);
+      }
+    }
+
     // Close all terminal channels
     for (const [terminalId, channel] of session.terminals) {
+      console.log(`Closing terminal channel: ${terminalId}`);
       try {
-        channel.close();
+        if (channel.stream) {
+          channel.stream.close();
+        }
       } catch (err) {
         console.error(`Error closing terminal ${terminalId}:`, err);
       }

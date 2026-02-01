@@ -91,23 +91,36 @@ async function handleLoginSubmit(username, password) {
  * Handle logout
  */
 async function handleLogout() {
+  console.log('handleLogout called');
   const sessionId = getStoredSession();
+  console.log('sessionId:', sessionId);
+
+  // Prevent WebSocket reconnection attempts during logout
+  if (window.wsClient) {
+    window.wsClient.intentionalDisconnect = true;
+  }
+
+  // Clear session first to ensure we go to login on reload
+  clearSession();
+  console.log('Session cleared');
 
   if (sessionId) {
     try {
-      await fetch('/api/logout', {
+      console.log('Calling /api/logout...');
+      const response = await fetch('/api/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ sessionId })
       });
+      console.log('Logout response:', response.status);
     } catch (err) {
       console.error('Logout error:', err);
     }
   }
 
-  clearSession();
+  console.log('About to reload...');
   window.location.reload();
 }
 

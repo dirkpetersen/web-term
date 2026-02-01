@@ -207,7 +207,72 @@ class LayoutManager {
   expandFileBrowser() {
     this.setFileBrowserWidth(250);
   }
+
+  /**
+   * Set up keyboard shortcuts for pane resizing
+   * Shift+Alt+Left/Right: resize left/right terminal split
+   * Shift+Alt+Up/Down: resize top/bottom split on right side
+   */
+  setupKeyboardShortcuts() {
+    const RESIZE_STEP = 5; // Percentage step for each keypress
+
+    // Use capture phase to intercept before terminal gets the event
+    document.addEventListener('keydown', (e) => {
+      // Check for Shift+Alt modifier combination
+      if (!e.shiftKey || !e.altKey) return;
+
+      // Only handle arrow keys
+      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+
+      // Stop event from reaching terminal
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          this.setTerminalSplitRatio(this.terminalSplitRatio - RESIZE_STEP);
+          this.saveLayoutPreferences();
+          this.fitTerminalsAfterResize();
+          break;
+
+        case 'ArrowRight':
+          this.setTerminalSplitRatio(this.terminalSplitRatio + RESIZE_STEP);
+          this.saveLayoutPreferences();
+          this.fitTerminalsAfterResize();
+          break;
+
+        case 'ArrowUp':
+          this.setRightPanelSplit(this.rightPanelSplit - RESIZE_STEP);
+          this.saveLayoutPreferences();
+          this.fitTerminalsAfterResize();
+          break;
+
+        case 'ArrowDown':
+          this.setRightPanelSplit(this.rightPanelSplit + RESIZE_STEP);
+          this.saveLayoutPreferences();
+          this.fitTerminalsAfterResize();
+          break;
+      }
+    }, true); // true = capture phase
+  }
+
+  /**
+   * Fit terminals after resize with debounce
+   */
+  fitTerminalsAfterResize() {
+    if (window.terminalManager) {
+      setTimeout(() => {
+        window.terminalManager.fitAllTerminals();
+      }, 50);
+    }
+  }
 }
 
 // Export singleton instance
 const layoutManager = new LayoutManager();
+
+// Set up keyboard shortcuts when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  layoutManager.setupKeyboardShortcuts();
+});
