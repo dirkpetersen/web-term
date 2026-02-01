@@ -2,6 +2,16 @@
 
 Web-term is a web-based Linux terminal with file browser, SSH authentication to localhost, and a polished UI.
 
+## Documentation
+
+Additional documentation in `docs/`:
+
+- **[docs/oauth-setup.md](docs/oauth-setup.md)**: OAuth/Azure AD integration options for migrating from password-based SSH authentication. Analyzes 4 approaches (temporary SSH keys, node-pty, PAM OAuth, containers) with pros/cons and recommendations.
+
+- **[docs/multi-tab.md](docs/multi-tab.md)**: Multi-tab implementation analysis. Compares browser tabs vs in-app tabs (Windows Terminal style). Includes hierarchical tmux naming scheme for selective logout.
+
+- **[docs/issues.md](docs/issues.md)**: Issues encountered during development and their solutions. Covers logout bugs, CodeMirror errors, keyboard event handling, and debugging techniques.
+
 ## Technology Stack
 
 - **Backend:** Node.js + Express + WebSockets (ws)
@@ -28,10 +38,11 @@ Web-term is a web-based Linux terminal with file browser, SSH authentication to 
 - **Editor:** CodeMirror with syntax highlighting (20+ languages)
 - **Pandoc integration:** Right-click convertible files → "Convert to Markdown"
 - **Download:** Toolbar button + context menu for selected files
-- **Terminals:** 3 concurrent SSH shells; font size controls (Ctrl+±/0)
+- **Terminals:** 3 concurrent SSH shells via tmux (sessions persist across disconnects)
+- **Pane resizing:** Shift+Alt+Arrow keys (Windows Terminal style) or drag handles
+- **Font size:** Ctrl+Plus/Minus/0 to adjust terminal font
 - **Navigation:** Restricted above home directory; "/" prompt allows anywhere
 - **Theme toggle:** Sun/moon icon in header; persisted to localStorage
-- **Terminal cleanup:** Auto-clear "Last login" messages on connect
 
 ## Recent Changes
 
@@ -49,9 +60,10 @@ Web-term is a web-based Linux terminal with file browser, SSH authentication to 
 - Theme preference saved to localStorage
 
 ### 3. Terminal Enhancements
+- **tmux persistence:** Sessions survive browser refresh/disconnect; killed on logout
 - `TerminalManager.lastActiveTerminalId` tracks focused terminal
 - `sendCommandToActiveTerminal()` sends commands to last active terminal
-- All terminals auto-clear on connection (600ms delay)
+- Keyboard pane resizing: Shift+Alt+Arrow keys (capture phase to prevent terminal interference)
 
 ### 4. File Operations
 - Pandoc conversion: Right-click on .doc/.docx/.odt/.ppt/.pptx/.epub/.html/.rst/.tex
@@ -75,6 +87,10 @@ Web-term is a web-based Linux terminal with file browser, SSH authentication to 
 ```
 web-term/
 ├── package.json
+├── docs/
+│   ├── oauth-setup.md       # OAuth/Azure AD migration options
+│   ├── multi-tab.md         # Multi-tab implementation analysis
+│   └── issues.md            # Bug fixes and debugging notes
 ├── public/
 │   ├── index.html
 │   ├── favicon.png          # Beaver logo
@@ -82,16 +98,18 @@ web-term/
 ├── src/
 │   ├── server/
 │   │   ├── app.js           # Express + routes
-│   │   ├── auth.js          # SSH auth
-│   │   ├── terminal.js      # Terminal mgmt
+│   │   ├── auth.js          # SSH auth + session destroy
+│   │   ├── terminal.js      # tmux session mgmt + atomic kill
 │   │   ├── filebrowser.js   # SFTP ops + readFileBuffer()
 │   │   └── websocket.js     # WS handler
 │   └── client/
 │       ├── app.js           # initTheme(), toggleTheme(), applyTheme()
-│       ├── terminal.js      # Font size, auto-clear
+│       ├── terminal.js      # Font size, terminal creation
 │       ├── terminalManager.js # lastActiveTerminalId, sendCommandToActiveTerminal()
+│       ├── layout.js        # Pane resizing, keyboard shortcuts (Shift+Alt+Arrow)
 │       ├── filebrowser.js   # Pandoc convert, download, restricted nav
 │       ├── editor.js        # CodeMirror integration
+│       ├── websocket.js     # WebSocket client + intentionalDisconnect flag
 │       └── ui.js            # triggerDownload() with fetch + blob
 └── web-term.service
 ```
@@ -124,6 +142,8 @@ npm run dev          # Auto-reload with nodemon
 - Binary files open for download, not edit
 - Dotfiles hidden by default
 - Files sorted by modification time (newest first)
-- Terminal prompt automatically cleared on new connections
 - Last active terminal receives pandoc commands
 - Home directory is security boundary (via loadDirectory parameter)
+- tmux sessions named `webterm-{username}-{pane}` (main, top, bottom)
+- Logout kills all tmux sessions atomically (single shell command to avoid SSH disruption)
+- Browser tab close preserves tmux sessions; explicit logout kills them
